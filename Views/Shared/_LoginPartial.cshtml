@@ -1,0 +1,72 @@
+﻿@using Microsoft.AspNetCore.Identity
+@using MicroSocialPlatform.Data
+@inject SignInManager<ApplicationUser> SignInManager
+@inject UserManager<ApplicationUser> UserManager
+@inject ApplicationDbContext DbContext
+
+@{
+    ApplicationUser? appUser = null;
+    int unreadCount = 0;
+    if (SignInManager.IsSignedIn(User))
+    {
+        appUser = await UserManager.GetUserAsync(User);
+        if (appUser != null)
+        {
+            unreadCount = DbContext.Notifications.Count(n => n.UserId == appUser.Id && !n.IsRead);
+        }
+    }
+}
+
+<ul class="navbar-nav">
+@if (appUser != null)
+{
+        <li class="nav-item d-flex align-items-center me-2">
+            <a asp-controller="Notification" asp-action="Index"
+               class="nav-link text-dark position-relative p-2"
+               title="Notifications">
+                <i class="bi bi-heart" style="font-size: 1.5rem;"></i>
+                @if (unreadCount > 0)
+                {
+                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+                          style="font-size: 0.65rem; min-width: 18px;">
+                        @(unreadCount > 99 ? "99+" : unreadCount)
+                    </span>
+                }
+            </a>
+        </li>
+
+        <li class="nav-item">
+            <a class="nav-link text-dark d-flex align-items-center gap-2"
+               asp-controller="Profile"
+               asp-action="Index"
+               asp-route-username="@User.Identity?.Name"
+               title="Manage Profile">
+
+                <img src="@(appUser.ProfileImage ?? "/images/default-avatar.png")"
+                     alt="Profile"
+                     class="rounded-circle border"
+                     style="width: 40px; height: 40px; object-fit: cover;">
+
+                <div class="d-flex flex-column justify-content-center line-height-normal" style="line-height: 1.2;">
+                    <span class="fw-bold text-dark" style="font-size: 0.9rem;">@User.Identity?.Name</span>
+                    <span class="text-muted" style="font-size: 0.8rem;">@appUser.FullName</span>
+                </div>
+            </a>
+        </li>
+
+        <li class="nav-item ms-3 d-flex align-items-center">
+            <form class="form-inline m-0" asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="@Url.Action("Index", "Home", new { area = "" })">
+                <button type="submit" class="nav-link btn btn-link text-dark">Logout</button>
+            </form>
+        </li>
+}
+else
+{
+    <li class="nav-item">
+        <a class="nav-link text-dark" asp-area="Identity" asp-page="/Account/Register">Register</a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link text-dark" asp-area="Identity" asp-page="/Account/Login">Login</a>
+    </li>
+}
+</ul>

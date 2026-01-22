@@ -1,0 +1,74 @@
+﻿@{
+    int? groupId = ViewBag.GroupId;
+    string? groupName = ViewBag.GroupName;
+}
+
+<link rel="stylesheet" href="~/css/post.css" />
+
+<div class="ig-create">
+    <div class="ig-create-card">
+        <div class="ig-create-left">
+            <div class="ig-drop">
+                @if (groupId.HasValue)
+                {
+                    <div class="ig-drop-title">Create post in @groupName</div>
+                }
+                else
+                {
+                    <div class="ig-drop-title">Create new post</div>
+                }
+                <input id="mediaInput" type="file" name="media" form="createForm" accept="image/*,video/*" required />
+                <div class="ig-preview">
+                    <img id="imgPreview" style="display:none;" />
+                    <video id="vidPreview" style="display:none;" controls></video>
+                </div>
+            </div>
+        </div>
+
+        <div class="ig-create-right">
+            <form id="createForm" asp-action="Create" method="post" enctype="multipart/form-data">
+                @Html.AntiForgeryToken()
+
+                @if (groupId.HasValue)
+                {
+                    <input type="hidden" name="groupId" value="@groupId.Value" />
+                }
+
+                <input class="ig-input" name="title" placeholder="Title (optional)" />
+                <textarea class="ig-textarea" name="description" placeholder="Write a caption..."></textarea>
+
+                <button class="ig-btn primary" type="submit">Share</button>
+                @if (groupId.HasValue)
+                {
+                    <a class="ig-btn" asp-controller="Group" asp-action="Details" asp-route-id="@groupId.Value">Cancel</a>
+                }
+                else
+                {
+                    <a class="ig-btn" asp-action="Index">Cancel</a>
+                }
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    const input = document.getElementById('mediaInput');
+    const img = document.getElementById('imgPreview');
+    const vid = document.getElementById('vidPreview');
+
+    input.addEventListener('change', e => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      const url = URL.createObjectURL(file);
+      if (file.type.startsWith('video/')) {
+        img.style.display = 'none';
+        vid.style.display = 'block';
+        vid.src = url;
+      } else {
+        vid.style.display = 'none';
+        img.style.display = 'block';
+        img.src = url;
+      }
+    });
+</script>

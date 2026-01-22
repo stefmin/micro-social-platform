@@ -1,0 +1,39 @@
+@model MicroSocialPlatform.ViewModels.SearchProfilePageViewModel
+
+@foreach (var item in Model.Items)
+{
+    <a href="@Url.Action("Index", "Profile", new { username = item.UserName })" class="search-result-item">
+        <img src="@(string.IsNullOrWhiteSpace(item.ProfileImage) ? "/images/default-avatar.png" : item.ProfileImage)"
+             alt="@item.UserName"
+             class="search-avatar" />
+        <div class="search-user-info">
+            <span class="search-username">@item.UserName</span>
+            @if (item.FollowStatus == "Accepted")
+            {
+                <span class="search-follow-status">Following</span>
+            }
+            else if (item.FollowStatus == "Pending")
+            {
+                <span class="search-follow-status">Requested</span>
+            }
+        </div>
+        @if (item.IsPrivate)
+        {
+            <span class="search-private-badge ms-auto">
+                <i class="bi bi-lock-fill"></i>
+            </span>
+        }
+    </a>
+}
+
+@if (Model.Items.Count == 0 && !string.IsNullOrEmpty(Model.Query))
+{
+    <div class="text-center text-muted py-4">
+        <p>No users found matching "@Model.Query"</p>
+    </div>
+}
+
+<div class="search-page-marker"
+     data-next-cursor="@(Model.NextCursor ?? "")"
+     data-has-more="@(Model.HasMore ? "true" : "false")"
+     data-page-size="@Model.PageSize"></div>

@@ -1,0 +1,52 @@
+@model MicroSocialPlatform.ViewModels.GroupsPageViewModel
+
+@foreach (var group in Model.Items)
+{
+    <a asp-action="Details" asp-route-id="@group.Id" class="list-group-item list-group-item-action py-3 group-result-item">
+        <div class="d-flex align-items-center gap-3">
+            @if (!string.IsNullOrEmpty(group.ImageUrl))
+            {
+                <img src="@group.ImageUrl"
+                     alt="@group.Name"
+                     class="rounded-circle border"
+                     style="width: 60px; height: 60px; object-fit: cover; flex-shrink: 0;">
+            }
+            else
+            {
+                <div class="rounded-circle border bg-light d-flex align-items-center justify-content-center"
+                     style="width: 60px; height: 60px; flex-shrink: 0;">
+                    <i class="bi bi-people" style="font-size: 1.5rem;"></i>
+                </div>
+            }
+
+            <div class="flex-grow-1">
+                <h5 class="mb-1">@group.Name</h5>
+                @if (!string.IsNullOrEmpty(group.Description))
+                {
+                    <p class="mb-1 text-muted small">
+                        @(group.Description.Length > 100 ? group.Description.Substring(0, 100) + "..." : group.Description)
+                    </p>
+                }
+                <small class="text-muted">
+                    Created by @group.Owner.UserName
+                    @if (group.IsPublic)
+                    {
+                        <span class="badge bg-success ms-2">Public</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-secondary ms-2">Private</span>
+                    }
+                </small>
+            </div>
+        </div>
+    </a>
+}
+
+<div class="groups-page-marker"
+     data-next-ticks="@(Model.NextCursorTicks?.ToString() ?? "")"
+     data-next-id="@(Model.NextCursorId?.ToString() ?? "")"
+     data-has-more="@(Model.HasMore ? "true" : "false")"
+     data-page-size="@Model.PageSize"
+     data-search="@(Model.Search ?? "")"
+     style="display:none;"></div>

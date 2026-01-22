@@ -1,0 +1,215 @@
+﻿@model MicroSocialPlatform.Models.ApplicationUser
+@using MicroSocialPlatform.Models
+
+@{
+    ViewData["Title"] = Model.FullName;
+    bool isMe = ViewBag.IsMe;
+    bool canViewContent = ViewBag.CanViewContent;
+    int followersCount = ViewBag.FollowersCount;
+    int followingCount = ViewBag.FollowingCount;
+    int postCount = ViewBag.PostCount ?? 0;
+    bool isAdmin = User.IsInRole("Admin");
+    var posts = ViewBag.Posts as List<MicroSocialPlatform.Models.Post>;
+}
+
+<div class="container mt-4" style="max-width: 935px;">
+
+    <div class="row mb-5 align-items-center">
+        <div class="col-md-4 d-flex justify-content-center">
+            <img src="@(Model.ProfileImage ?? "/images/default-avatar.png")"
+                 alt="Profile Picture"
+                 class="rounded-circle border"
+                 style="width: 150px; height: 150px; object-fit: cover;">
+        </div>
+
+        <div class="col-md-8">
+            <div class="d-flex align-items-center gap-3 mb-3">
+                <h2 class="fw-light m-0">@Model.UserName</h2>
+                @if (isMe)
+                {
+                    <a asp-area="Identity" asp-page="/Account/Manage/Index" class="btn btn-outline-secondary btn-sm fw-bold">Edit Profile</a>
+                }
+                else
+                {
+                    <form asp-controller="Follow" asp-action="ToggleFollow" asp-route-id="@Model.Id" method="post">
+
+                        @if (ViewBag.FollowStatus == "None")
+                        {
+                            <button type="submit" class="btn btn-primary btn-sm fw-bold px-4">Follow</button>
+                        }
+                        else if (ViewBag.FollowStatus == "Pending")
+                        {
+                            <button type="submit" class="btn btn-secondary btn-sm fw-bold px-4">Requested</button>
+                        }
+                        else
+                        {
+
+                            <button type="submit" class="btn btn-outline-secondary btn-sm fw-bold px-4">Following</button>
+                        }
+                    </form>
+                }
+            </div>
+
+            <ul class="d-flex list-unstyled gap-5 mb-3">
+                <li><span class="fw-bold">@postCount</span> posts</li>
+                <li><span class="fw-bold">@followersCount</span> followers</li>
+                <li><span class="fw-bold">@followingCount</span> following</li>
+            </ul>
+
+            <div>
+                <div class="fw-bold">@Model.FullName</div>
+                <div style="white-space: pre-line;">@Model.Bio</div>
+            </div>
+
+            @if (isAdmin && !isMe)
+            {
+                <div class="mt-4 p-4 border rounded bg-light">
+                    <div class="d-flex align-items-center gap-2 mb-3">
+                        <i class="bi bi-shield-lock text-danger"></i>
+                        <span class="fw-bold text-danger">Admin Controls</span>
+                    </div>
+                    <div class="mb-3">
+                        @switch (Model.Status)
+                        {
+                            case UserStatus.Active:
+                                <span class="badge bg-success px-3 py-2">Active</span>
+                                break;
+                            case UserStatus.Suspended:
+                                <span class="badge bg-warning text-dark px-3 py-2">Suspended</span>
+                                break;
+                            case UserStatus.Banned:
+                                <span class="badge bg-danger px-3 py-2">Banned</span>
+                                break;
+                        }
+                    </div>
+                    <div class="d-flex flex-wrap gap-2">
+                        @if (Model.Status == UserStatus.Active)
+                        {
+                            <form asp-controller="Admin" asp-action="SuspendUser" asp-route-id="@Model.Id" method="post" class="d-inline">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="btn btn-warning px-3 py-2" onclick="return confirm('Suspend this user?');">
+                                    <i class="bi bi-pause-circle me-1"></i>Suspend
+                                </button>
+                            </form>
+                            <form asp-controller="Admin" asp-action="BanUser" asp-route-id="@Model.Id" method="post" class="d-inline">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="btn btn-danger px-3 py-2" onclick="return confirm('Ban this user? They will not be able to log in.');">
+                                    <i class="bi bi-x-circle me-1"></i>Ban
+                                </button>
+                            </form>
+                            <form asp-controller="Admin" asp-action="PromoteToAdmin" asp-route-id="@Model.Id" method="post" class="d-inline">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="btn btn-primary px-3 py-2" onclick="return confirm('Promote this user to Admin? They will have full administrative access.');">
+                                    <i class="bi bi-shield-plus me-1"></i>Promote to Admin
+                                </button>
+                            </form>
+                        }
+                        else if (Model.Status == UserStatus.Suspended)
+                        {
+                            <form asp-controller="Admin" asp-action="UnsuspendUser" asp-route-id="@Model.Id" method="post" class="d-inline">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="btn btn-success px-3 py-2">
+                                    <i class="bi bi-play-circle me-1"></i>Unsuspend
+                                </button>
+                            </form>
+                            <form asp-controller="Admin" asp-action="BanUser" asp-route-id="@Model.Id" method="post" class="d-inline">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="btn btn-danger px-3 py-2" onclick="return confirm('Ban this user?');">
+                                    <i class="bi bi-x-circle me-1"></i>Ban
+                                </button>
+                            </form>
+                        }
+                        else if (Model.Status == UserStatus.Banned)
+                        {
+                            <form asp-controller="Admin" asp-action="UnbanUser" asp-route-id="@Model.Id" method="post" class="d-inline">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="btn btn-success px-3 py-2">
+                                    <i class="bi bi-check-circle me-1"></i>Unban
+                                </button>
+                            </form>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+
+    <hr />
+
+    @if (canViewContent)
+    {
+        @if (posts != null && posts.Any())
+        {
+            <link rel="stylesheet" href="~/css/post.css" />
+            <div class="ig-feed">
+                @foreach (var p in posts)
+                {
+                    <article class="ig-card">
+                        <header class="ig-card-header">
+                            <div class="ig-user">
+                                <img class="ig-avatar" src="@p.User.ProfileImage" alt="avatar" />
+                                <div class="ig-user-meta">
+                                    <a class="ig-username" asp-controller="Profile" asp-action="Index" asp-route-username="@p.User.UserName">
+                                        @p.User.UserName
+                                    </a>
+                                    <div class="ig-time">@p.CreatedAt.ToLocalTime().ToString("g")</div>
+                                </div>
+                            </div>
+
+                            @if (User.Identity?.Name == p.User.UserName)
+                            {
+                                <div class="ig-actions">
+                                    <a class="ig-link" asp-controller="Post" asp-action="Edit" asp-route-id="@p.Id">Edit</a>
+                                    <form asp-controller="Post" asp-action="Delete" asp-route-id="@p.Id" method="post" class="ig-inline">
+                                        @Html.AntiForgeryToken()
+                                        <button class="ig-link danger" type="submit">Delete</button>
+                                    </form>
+                                </div>
+                            }
+                        </header>
+
+                        <div class="ig-media">
+                            @if (p.MediaType == "video")
+                            {
+                                <video controls src="@p.MediaKey"></video>
+                            }
+                            else
+                            {
+                                <img src="@p.MediaKey" alt="post media" />
+                            }
+                        </div>
+
+                        <div class="ig-body">
+                            <div class="ig-stats">
+                                <span><b>@p.Likes.Count</b> likes</span>
+                                <span><b>@p.Comments.Count</b> comments</span>
+                            </div>
+
+                            @if (!string.IsNullOrWhiteSpace(p.Description))
+                            {
+                                <div class="ig-caption">
+                                    <b>@p.User.UserName</b> @p.Description
+                                </div>
+                            }
+                        </div>
+                    </article>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="text-center py-5">
+                <div class="h1"><i class="bi bi-camera"></i></div>
+                <h3>No Posts Yet</h3>
+            </div>
+        }
+    }
+    else
+    {
+        <div class="text-center py-5 border rounded bg-light">
+            <div class="mb-3"><i class="bi bi-lock-fill" style="font-size: 3rem;"></i></div>
+            <h4>This account is private</h4>
+            <p class="text-muted">Follow to see their photos and videos.</p>
+        </div>
+    }
+</div>

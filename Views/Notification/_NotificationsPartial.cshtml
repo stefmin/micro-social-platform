@@ -1,0 +1,100 @@
+@model MicroSocialPlatform.ViewModels.NotificationPageViewModel
+
+@foreach (var item in Model.Items)
+{
+    var notification = item.Notification;
+    var avatarUrl = notification.Actor?.ProfileImage ?? "/images/default-avatar.png";
+    var username = notification.Actor?.UserName ?? "Someone";
+    var actorId = notification.Actor?.Id;
+    var groupName = notification.Group?.Name;
+    var message = notification.Type switch
+    {
+        NotificationType.FollowRequest => "requested to follow you.",
+        NotificationType.FollowAccepted => "accepted your follow request.",
+        NotificationType.NewFollower => "started following you.",
+        NotificationType.GroupJoinRequest => $"requested to join {groupName}.",
+        NotificationType.GroupJoinAccepted => $"accepted your request to join {groupName}.",
+        _ => "sent you a notification."
+    };
+    var timeAgo = GetTimeAgo(notification.CreatedAt);
+    var bgClass = notification.IsRead ? "" : "bg-light";
+
+    <div class="list-group-item d-flex align-items-center gap-3 py-3 @bgClass">
+
+        <a asp-controller="Profile" asp-action="Index" asp-route-username="@username">
+            <img src="@avatarUrl"
+                 alt="@username"
+                 class="rounded-circle border"
+                 style="width: 50px; height: 50px; object-fit: cover; flex-shrink: 0;">
+        </a>
+
+        <div class="flex-grow-1">
+            <p class="mb-0">
+                <a asp-controller="Profile" asp-action="Index" asp-route-username="@username" class="fw-bold text-dark text-decoration-none">@username</a> @message
+            </p>
+            <small class="text-muted">@timeAgo</small>
+
+            @if (notification.Type == NotificationType.FollowRequest && actorId != null)
+            {
+                <div class="mt-2 d-flex gap-2">
+                    <form asp-controller="Follow" asp-action="AcceptFollowFromNotification" asp-route-id="@actorId" asp-route-notificationId="@notification.Id" method="post" class="d-inline">
+                        <button type="submit" class="btn btn-primary btn-sm px-3">Confirm</button>
+                    </form>
+                    <form asp-controller="Follow" asp-action="RejectFollowFromNotification" asp-route-id="@actorId" asp-route-notificationId="@notification.Id" method="post" class="d-inline">
+                        <button type="submit" class="btn btn-outline-secondary btn-sm px-3">Delete</button>
+                    </form>
+                </div>
+            }
+
+            @if (notification.Type == NotificationType.GroupJoinRequest && actorId != null && notification.GroupId != null)
+            {
+                <div class="mt-2 d-flex gap-2">
+                    <form asp-controller="Group" asp-action="AcceptMemberFromNotification" asp-route-groupId="@notification.GroupId" asp-route-userId="@actorId" asp-route-notificationId="@notification.Id" method="post" class="d-inline">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-primary btn-sm px-3">Accept</button>
+                    </form>
+                    <form asp-controller="Group" asp-action="RejectMemberFromNotification" asp-route-groupId="@notification.GroupId" asp-route-userId="@actorId" asp-route-notificationId="@notification.Id" method="post" class="d-inline">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-outline-secondary btn-sm px-3">Reject</button>
+                    </form>
+                </div>
+            }
+
+            @if (notification.Type == NotificationType.GroupJoinAccepted && notification.GroupId != null)
+            {
+                <div class="mt-2">
+                    <a asp-controller="Group" asp-action="Details" asp-route-id="@notification.GroupId" class="btn btn-outline-primary btn-sm px-3">View Group</a>
+                </div>
+            }
+        </div>
+
+        @if (!notification.IsRead)
+        {
+            <form asp-action="MarkAsRead" asp-route-id="@notification.Id" method="post">
+                <button type="submit" class="btn btn-link p-0" title="Mark as read">
+                    <span class="bg-primary rounded-circle d-inline-block" style="width: 10px; height: 10px;"></span>
+                </button>
+            </form>
+        }
+    </div>
+}
+
+<div class="notifications-page-marker"
+     data-next-ticks="@(Model.NextCursorTicks?.ToString() ?? "")"
+     data-next-id="@(Model.NextCursorId?.ToString() ?? "")"
+     data-has-more="@(Model.HasMore ? "true" : "false")"
+     data-page-size="@Model.PageSize"></div>
+
+@functions {
+    string GetTimeAgo(DateTime date)
+    {
+        var span = DateTime.UtcNow - date;
+
+        if (span.TotalSeconds < 60) return "just now";
+        if (span.TotalMinutes < 60) return $"{(int)span.TotalMinutes}m";
+        if (span.TotalHours < 24) return $"{(int)span.TotalHours}h";
+        if (span.TotalDays < 7) return $"{(int)span.TotalDays}d";
+
+        return date.ToShortDateString();
+    }
+}

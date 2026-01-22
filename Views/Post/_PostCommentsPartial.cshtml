@@ -1,0 +1,26 @@
+﻿@model MicroSocialPlatform.ViewModels.CommentsPageViewModel
+
+@foreach (var c in Model.Comments.OrderBy(c => c.CreatedAt))
+{
+    var cLiked = Model.LikedCommentIds.Contains(c.Id);
+    var cLikeCount = Model.CommentLikeCounts.TryGetValue(c.Id, out var cnt) ? cnt : 0;
+
+    <div class="ig-comment">
+        <span class="ig-comment-user"><b>@c.User.UserName</b></span>
+        <span class="ig-comment-text">@c.Text</span>
+
+        <form asp-controller="Post" asp-action="ToggleCommentLike" method="post" class="ig-inline like-form ig-comment-like">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="commentId" value="@c.Id" />
+            <button type="submit" class="ig-heart-btn ig-heart-btn-sm" aria-label="Like comment">@(cLiked ? "♥" : "♡")</button>
+            <span class="ig-like-count ig-like-count-sm">@cLikeCount</span>
+        </form>
+    </div>
+}
+
+<div class="comments-page-marker"
+     data-post-id="@Model.PostId"
+     data-next-ticks="@(Model.NextCursorTicks?.ToString() ?? "")"
+     data-next-id="@(Model.NextCursorId?.ToString() ?? "")"
+     data-has-more="@(Model.HasMore ? "true" : "false")"
+     data-page-size="@Model.PageSize"></div>

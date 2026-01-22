@@ -1,0 +1,54 @@
+@model MicroSocialPlatform.ViewModels.SearchProfilePageViewModel
+
+@{
+    ViewData["Title"] = "Search";
+}
+
+<link rel="stylesheet" href="~/css/site.css" />
+
+<div class="search-container mt-4">
+    <h2 class="fw-light mb-4"><i class="bi bi-search"></i> Search</h2>
+
+    <div class="search-box mb-4">
+        <input type="text"
+               id="search-input"
+               class="search-input"
+               placeholder="Search for people..."
+               autocomplete="off" />
+    </div>
+
+    <div id="search-results-container">
+        <!-- Results will be loaded here via AJAX -->
+    </div>
+
+    <div id="search-loading" class="text-center py-3" style="display: none;">
+        <span class="spinner-border spinner-border-sm" role="status"></span>
+        Loading...
+    </div>
+
+    <div id="search-sentinel" style="height: 1px;"></div>
+
+    <div id="search-empty" class="text-center text-muted py-5">
+        <i class="bi bi-search" style="font-size: 3rem;"></i>
+        <p class="mt-3">Search for people by username</p>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/searchScroller.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            if (window.MSP && window.MSP.initSearchScroller) {
+                window.MSP.initSearchScroller({
+                    inputId: "search-input",
+                    containerId: "search-results-container",
+                    sentinelId: "search-sentinel",
+                    loadingId: "search-loading",
+                    emptyId: "search-empty",
+                    endpointUrl: "@Url.Action("SearchProfiles", "Search")",
+                    pageSize: @Model.PageSize
+                });
+            }
+        });
+    </script>
+}

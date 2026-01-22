@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36717.8
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MicroSocialPlatform", "MicroSocialPlatform.csproj", "{80AFF058-FD7B-4372-A097-FE3F9A29EFB7}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{80AFF058-FD7B-4372-A097-FE3F9A29EFB7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{80AFF058-FD7B-4372-A097-FE3F9A29EFB7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{80AFF058-FD7B-4372-A097-FE3F9A29EFB7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{80AFF058-FD7B-4372-A097-FE3F9A29EFB7}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {4B88A6FF-7FB9-4D68-BE01-21ECAF74E8A4}
+	EndGlobalSection
+EndGlobal

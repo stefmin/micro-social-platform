@@ -1,0 +1,198 @@
+@model MicroSocialPlatform.Models.Group
+
+@{
+    ViewData["Title"] = Model.Name;
+    bool isOwner = ViewBag.IsOwner;
+    bool isMember = ViewBag.IsMember;
+    bool hasPendingRequest = ViewBag.HasPendingRequest;
+    bool canViewContent = ViewBag.CanViewContent;
+    int memberCount = ViewBag.MemberCount;
+    var posts = ViewBag.Posts as List<MicroSocialPlatform.Models.Post>;
+    bool isAdmin = User.IsInRole("Admin");
+}
+
+<link rel="stylesheet" href="~/css/post.css" />
+
+<div class="container mt-4" style="max-width: 935px;">
+
+    <div class="row mb-5 align-items-center">
+        <div class="col-md-4 d-flex justify-content-center">
+            @if (!string.IsNullOrEmpty(Model.ImageUrl))
+            {
+                <img src="@Model.ImageUrl"
+                     alt="@Model.Name"
+                     class="rounded-circle border"
+                     style="width: 150px; height: 150px; object-fit: cover;">
+            }
+            else
+            {
+                <div class="rounded-circle border bg-light d-flex align-items-center justify-content-center"
+                     style="width: 150px; height: 150px;">
+                    <i class="bi bi-people" style="font-size: 3rem;"></i>
+                </div>
+            }
+        </div>
+
+        <div class="col-md-8">
+            <div class="d-flex align-items-center gap-3 mb-3">
+                <h2 class="fw-light m-0">@Model.Name</h2>
+
+                @if (isOwner)
+                {
+                    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-outline-secondary btn-sm fw-bold">Edit Group</a>
+                    <a asp-action="Members" asp-route-id="@Model.Id" class="btn btn-outline-secondary btn-sm fw-bold">Manage Members</a>
+                }
+                else if (isMember)
+                {
+                    <form asp-action="Leave" asp-route-id="@Model.Id" method="post" class="d-inline">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-outline-secondary btn-sm fw-bold px-4">Leave</button>
+                    </form>
+                }
+                else if (hasPendingRequest)
+                {
+                    <form asp-action="Leave" asp-route-id="@Model.Id" method="post" class="d-inline">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-secondary btn-sm fw-bold px-4">Requested</button>
+                    </form>
+                }
+                else
+                {
+                    <form asp-action="Join" asp-route-id="@Model.Id" method="post" class="d-inline">
+                        @Html.AntiForgeryToken()
+                        @if (Model.IsPublic)
+                        {
+                            <button type="submit" class="btn btn-primary btn-sm fw-bold px-4">Join</button>
+                        }
+                        else
+                        {
+                            <button type="submit" class="btn btn-primary btn-sm fw-bold px-4">Request to Join</button>
+                        }
+                    </form>
+                }
+            </div>
+
+            <ul class="d-flex list-unstyled gap-5 mb-3">
+                <li><span class="fw-bold">@(posts?.Count ?? 0)</span> posts</li>
+                <li><span class="fw-bold">@memberCount</span> members</li>
+            </ul>
+
+            <div>
+                <div class="fw-bold">Created by @Model.Owner.UserName</div>
+                @if (!string.IsNullOrEmpty(Model.Description))
+                {
+                    <div style="white-space: pre-line;">@Model.Description</div>
+                }
+            </div>
+
+            @if (isAdmin && !isOwner)
+            {
+                <div class="mt-4 p-4 border rounded bg-light">
+                    <div class="d-flex align-items-center gap-2 mb-3">
+                        <i class="bi bi-shield-lock text-danger"></i>
+                        <span class="fw-bold text-danger">Admin Controls</span>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2">
+                        <form asp-controller="Admin" asp-action="DeleteGroup" asp-route-id="@Model.Id" method="post" class="d-inline">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-danger px-3 py-2" onclick="return confirm('Delete this group? This action cannot be undone.');">
+                                <i class="bi bi-trash me-1"></i>Delete Group
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+
+    <hr />
+
+    @if (canViewContent)
+    {
+        @if (isOwner || isMember)
+        {
+            <div class="mb-4">
+                <a asp-controller="Post" asp-action="Create" asp-route-groupId="@Model.Id" class="btn btn-primary">
+                    <i class="bi bi-plus-lg"></i> Create Post
+                </a>
+            </div>
+        }
+
+        @if (posts != null && posts.Any())
+        {
+            <div class="ig-feed">
+                @foreach (var p in posts)
+                {
+                    <article class="ig-card">
+                        <header class="ig-card-header">
+                            <div class="ig-user">
+                                <img class="ig-avatar" src="@p.User.ProfileImage" alt="avatar" />
+                                <div class="ig-user-meta">
+                                    <a class="ig-username" asp-controller="Profile" asp-action="Index" asp-route-username="@p.User.UserName">
+                                        @p.User.UserName
+                                    </a>
+                                    <div class="ig-time">@p.CreatedAt.ToLocalTime().ToString("g")</div>
+                                </div>
+                            </div>
+
+                            @if (User.Identity?.Name == p.User.UserName || isAdmin)
+                            {
+                                <div class="ig-actions">
+                                    @if (User.Identity?.Name == p.User.UserName)
+                                    {
+                                        <a class="ig-link" asp-controller="Post" asp-action="Edit" asp-route-id="@p.Id">Edit</a>
+                                    }
+                                    <form asp-controller="Post" asp-action="Delete" asp-route-id="@p.Id" method="post" class="ig-inline">
+                                        @Html.AntiForgeryToken()
+                                        <button class="ig-link danger" type="submit">Delete</button>
+                                    </form>
+                                </div>
+                            }
+                        </header>
+
+                        <div class="ig-media">
+                            @if (p.MediaType == "video")
+                            {
+                                <video controls src="@p.MediaKey"></video>
+                            }
+                            else
+                            {
+                                <img src="@p.MediaKey" alt="post media" />
+                            }
+                        </div>
+
+                        <div class="ig-body">
+                            <div class="ig-stats">
+                                <span><b>@p.Likes.Count</b> likes</span>
+                                <span><b>@p.Comments.Count</b> comments</span>
+                            </div>
+
+                            @if (!string.IsNullOrWhiteSpace(p.Description))
+                            {
+                                <div class="ig-caption">
+                                    <b>@p.User.UserName</b> @p.Description
+                                </div>
+                            }
+                        </div>
+                    </article>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="text-center py-5">
+                <div class="h1"><i class="bi bi-camera"></i></div>
+                <h3>No Posts Yet</h3>
+                <p class="text-muted">Be the first to post in this group!</p>
+            </div>
+        }
+    }
+    else
+    {
+        <div class="text-center py-5 border rounded bg-light">
+            <div class="mb-3"><i class="bi bi-lock-fill" style="font-size: 3rem;"></i></div>
+            <h4>This group is private</h4>
+            <p class="text-muted">Request to join to see posts and participate.</p>
+        </div>
+    }
+</div>

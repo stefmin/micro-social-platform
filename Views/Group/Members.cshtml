@@ -1,0 +1,94 @@
+@model MicroSocialPlatform.Models.Group
+
+@{
+    ViewData["Title"] = "Manage Members - " + Model.Name;
+    var pendingMembers = ViewBag.PendingMembers as List<GroupMember>;
+    var acceptedMembers = ViewBag.AcceptedMembers as List<GroupMember>;
+}
+
+<div class="container mt-4" style="max-width: 700px;">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-light m-0">Manage Members</h2>
+        <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-outline-secondary btn-sm">Back to Group</a>
+    </div>
+
+    <p class="text-muted mb-4">@Model.Name</p>
+
+    @if (pendingMembers != null && pendingMembers.Any())
+    {
+        <div class="mb-5">
+            <h4 class="mb-3">Pending Requests <span class="badge bg-warning text-dark">@pendingMembers.Count</span></h4>
+            <div class="list-group">
+                @foreach (var member in pendingMembers)
+                {
+                    var avatarUrl = member.User?.ProfileImage ?? "/images/default-avatar.png";
+                    var username = member.User?.UserName ?? "Unknown";
+
+                    <div class="list-group-item d-flex align-items-center gap-3 py-3">
+                        <a asp-controller="Profile" asp-action="Index" asp-route-username="@username">
+                            <img src="@avatarUrl"
+                                 alt="@username"
+                                 class="rounded-circle border"
+                                 style="width: 50px; height: 50px; object-fit: cover; flex-shrink: 0;">
+                        </a>
+
+                        <div class="flex-grow-1">
+                            <a asp-controller="Profile" asp-action="Index" asp-route-username="@username" class="fw-bold text-dark text-decoration-none">@username</a>
+                            <div class="text-muted small">Requested @member.JoinDate.ToString("MMM d, yyyy")</div>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <form asp-action="AcceptMember" asp-route-groupId="@Model.Id" asp-route-userId="@member.UserId" method="post">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="btn btn-primary btn-sm px-3">Accept</button>
+                            </form>
+                            <form asp-action="RejectMember" asp-route-groupId="@Model.Id" asp-route-userId="@member.UserId" method="post">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="btn btn-outline-secondary btn-sm px-3">Reject</button>
+                            </form>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+
+    <div>
+        <h4 class="mb-3">Members <span class="badge bg-secondary">@(acceptedMembers?.Count ?? 0)</span></h4>
+
+        @if (acceptedMembers == null || !acceptedMembers.Any())
+        {
+            <div class="text-center py-4 border rounded bg-light">
+                <p class="text-muted mb-0">No members yet</p>
+            </div>
+        }
+        else
+        {
+            <div class="list-group">
+                @foreach (var member in acceptedMembers)
+                {
+                    var username = member.User?.UserName ?? "Unknown";
+
+                    <div class="list-group-item d-flex align-items-center gap-3 py-3">
+                        <a asp-controller="Profile" asp-action="Index" asp-route-username="@username">
+                            <img src="@member.User?.ProfileImage ?? "/images/default-avatar.png";"
+                                 alt="@username"
+                                 class="rounded-circle border"
+                                 style="width: 50px; height: 50px; object-fit: cover; flex-shrink: 0;">
+                        </a>
+
+                        <div class="flex-grow-1">
+                            <a asp-controller="Profile" asp-action="Index" asp-route-username="@username" class="fw-bold text-dark text-decoration-none">@username</a>
+                            <div class="text-muted small">Joined @member.JoinDate.ToString("MMM d, yyyy")</div>
+                        </div>
+
+                        <form asp-action="RemoveMember" asp-route-groupId="@Model.Id" asp-route-userId="@member.UserId" method="post" onsubmit="return confirm('Remove this member from the group?');">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-outline-danger btn-sm">Remove</button>
+                        </form>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</div>

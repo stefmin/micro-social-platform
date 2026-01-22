@@ -1,0 +1,122 @@
+﻿@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Profile";
+    ViewData["ActivePage"] = ManageNavPages.Index;
+}
+
+<style>
+    .profile-image-container {
+        position: relative;
+        width: 120px;
+        height: 120px;
+        margin: 0 auto;
+        cursor: pointer;
+        overflow: hidden;
+        border-radius: 50%;
+    }
+
+        .profile-image-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.3s ease;
+        }
+
+    .image-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    .profile-image-container:hover .image-overlay {
+        opacity: 1;
+    }
+
+    .profile-image-container:hover img {
+        transform: scale(1.05);
+    }
+</style>
+
+<h3>@ViewData["Title"]</h3>
+<partial name="_StatusMessage" for="StatusMessage" />
+<div class="row">
+    <div class="col-md-6">
+        <form id="profile-form" method="post" enctype="multipart/form-data">
+            <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
+
+            <div class="mb-4">
+                <div class="profile-image-container shadow-sm" onclick="document.getElementById('Input_ProfileImageUpload').click()">
+
+                    <img id="profileImagePreview"
+                         src="@(Model.CurrentProfileImage ?? "/images/default-avatar.png")"
+                         alt="Current Profile Picture" />
+
+                    <div class="image-overlay">
+                        <i class="bi bi-pencil-fill text-white fs-3"></i>
+                    </div>
+                </div>
+
+                @* hidden file input for form file upload *@
+                <input asp-for="Input.ProfileImageUpload"
+                       style="display: none;"
+                       type="file"
+                       accept=".jpg,.jpeg,.png" />
+
+                <span asp-validation-for="Input.ProfileImageUpload" class="text-danger"></span>
+            </div>
+
+            <div class="form-floating mb-3">
+                <input asp-for="Username" class="form-control" placeholder="Please choose your username." disabled />
+                <label asp-for="Username" class="form-label"></label>
+            </div>
+
+            <div class="form-floating mb-3">
+                <input asp-for="Input.FullName" class="form-control" placeholder="John Doe" />
+                <label asp-for="Input.FullName" class="form-label">Full Name</label>
+                <span asp-validation-for="Input.FullName" class="text-danger"></span>
+            </div>
+
+            <div class="form-floating mb-3">
+                <textarea asp-for="Input.Bio" class="form-control" placeholder="Bio" style="height: 100px"></textarea>
+                <label asp-for="Input.Bio" class="form-label">Bio</label>
+                <span asp-validation-for="Input.Bio" class="text-danger"></span>
+            </div>
+
+            <div class="form-floating mb-3">
+                <input asp-for="Input.PhoneNumber" class="form-control" placeholder="Please enter your phone number." />
+                <label asp-for="Input.PhoneNumber" class="form-label"></label>
+                <span asp-validation-for="Input.PhoneNumber" class="text-danger"></span>
+            </div>
+
+            <button id="update-profile-button" type="submit" class="w-100 btn btn-lg btn-primary">Save</button>
+        </form>
+    </div>
+</div>
+
+@* script to load profile picture preview upon upload *@
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+
+    <script>
+        document.getElementById('Input_ProfileImageUpload').addEventListener('change', function(event) {
+            var file = event.target.files[0];
+
+            if (file) {
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('profileImagePreview').src = e.target.result;
+                }
+                reader.readAsDataURL(file);
+            }
+        });
+    </script>
+}

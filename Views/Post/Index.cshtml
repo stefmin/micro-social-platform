@@ -1,0 +1,277 @@
+﻿@* 
+
+@model List<MicroSocialPlatform.ViewModels.PostFeedItemViewModel>
+
+<link rel="stylesheet" href="~/css/post.css" />
+
+<div class="ig-feed">
+    <div class="ig-feed-header">
+        <h2>Feed</h2>
+        <a class="ig-btn" asp-controller="Post" asp-action="Create">Create</a>
+    </div>
+
+    @foreach (var item in Model)
+    {
+        var p = item.Post;
+
+        <article class="ig-card">
+            <header class="ig-card-header">
+                <div class="ig-user">
+                    <img class="ig-avatar" src="@p.User.ProfileImage" alt="avatar" />
+                    <div class="ig-user-meta">
+                        <a class="ig-username"
+                           asp-controller="Profile"
+                           asp-action="Index"
+                           asp-route-username="@p.User.UserName">
+                            @p.User.UserName
+                        </a>
+                        <div class="ig-time">@p.CreatedAt.ToLocalTime().ToString("g")</div>
+                    </div>
+                </div>
+
+                @if (User.Identity?.Name == p.User.UserName)
+                {
+                    <div class="ig-actions">
+                        <a class="ig-link" asp-action="Edit" asp-route-id="@p.Id">Edit</a>
+                        <form asp-action="Delete" asp-route-id="@p.Id" method="post" class="ig-inline">
+                            @Html.AntiForgeryToken()
+                            <button class="ig-link danger" type="submit">Delete</button>
+                        </form>
+                    </div>
+                }
+            </header>
+
+            <div class="ig-media">
+                @if (p.MediaType == "video")
+                {
+                    <video controls src="@p.MediaKey"></video>
+                }
+                else
+                {
+                    <img src="@p.MediaKey" alt="post media" />
+                }
+            </div>
+
+            <div class="ig-body">
+                <div class="ig-stats">
+                    <!-- POST HEART + COUNT (replaces p.Reactions.Count) -->
+                    <span class="ig-inline">
+                        <form asp-controller="Post"
+                              asp-action="TogglePostLike"
+                              method="post"
+                              class="ig-inline like-form"
+                              data-like-kind="post"
+                              data-like-id="@p.Id">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="postId" value="@p.Id" />
+
+                            <button type="submit"
+                                    class="ig-heart-btn"
+                                    aria-label="Like post">
+                                @(item.IsPostLikedByMe ? "♥" : "♡")
+                            </button>
+                            <b class="ig-like-count">@item.PostLikeCount</b> likes
+                        </form>
+                    </span>
+
+                    <span><b>@p.Comments.Count</b> comments</span>
+                </div>
+
+                @if (!string.IsNullOrWhiteSpace(p.Description))
+                {
+                    <div class="ig-caption">
+                        <b>@p.User.UserName</b> @p.Description
+                    </div>
+                }
+
+                <div class="ig-comments">
+                    @foreach (var c in p.Comments.OrderBy(c => c.CreatedAt))
+                    {
+                        var cLiked = item.LikedCommentIds.Contains(c.Id);
+                        var cLikeCount = item.CommentLikeCounts.TryGetValue(c.Id, out var cnt) ? cnt : 0;
+
+                        <div class="ig-comment">
+                            <span class="ig-comment-user"><b>@c.User.UserName</b></span>
+                            <span class="ig-comment-text">@c.Text</span>
+
+                            <!-- COMMENT HEART + COUNT -->
+                            <form asp-controller="Post"
+                                  asp-action="ToggleCommentLike"
+                                  method="post"
+                                  class="ig-inline like-form ig-comment-like"
+                                  data-like-kind="comment"
+                                  data-like-id="@c.Id">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="commentId" value="@c.Id" />
+
+                                <button type="submit"
+                                        class="ig-heart-btn ig-heart-btn-sm"
+                                        aria-label="Like comment">
+                                    @(cLiked ? "♥" : "♡")
+                                </button>
+                                <span class="ig-like-count ig-like-count-sm">@cLikeCount</span>
+                            </form>
+
+                            @if (User.Identity?.Name == c.User.UserName || User.Identity?.Name == p.User.UserName)
+                            {
+                                <form asp-controller="Post" asp-action="DeleteComment" method="post" class="ig-inline">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="commentId" value="@c.Id" />
+                                    <button class="ig-link danger" type="submit">Delete</button>
+                                </form>
+                            }
+                        </div>
+                    }
+                </div>
+
+                @if (item.CanComment)
+                {
+                    <form asp-controller="Post" asp-action="AddComment" method="post" class="ig-comment-form">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="postId" value="@p.Id" />
+                        <input class="ig-comment-input" type="text" name="text" placeholder="Add a comment..." maxlength="500" />
+                        <button class="ig-btn" type="submit">Post</button>
+                    </form>
+                }
+            </div>
+        </article>
+    }
+</div>
+
+<script>
+    // Optional: AJAX toggle like/unlike (no page refresh).
+    // Without this, likes still work but the page refreshes.
+    document.addEventListener("submit", async (e) => {
+        const form = e.target;
+        if (!form.classList.contains("like-form")) return;
+
+        e.preventDefault();
+
+        const tokenInput = form.querySelector('input[name="__RequestVerificationToken"]');
+        const token = tokenInput ? tokenInput.value : null;
+
+        const body = new URLSearchParams(new FormData(form));
+
+        const res = await fetch(form.action, {
+            method: "POST",
+            headers: {
+                "X-Requested-With": "XMLHttpRequest",
+                ...(token ? { "RequestVerificationToken": token } : {})
+            },
+            body
+        });
+
+        if (!res.ok) {
+            // fallback: do a normal submit if something goes wrong
+            form.classList.remove("like-form");
+            form.submit();
+            return;
+        }
+
+        const data = await res.json();
+
+        const btn = form.querySelector("button.ig-heart-btn");
+        const countEl = form.querySelector(".ig-like-count");
+
+        if (btn) btn.textContent = data.liked ? "♥" : "♡";
+        if (countEl) countEl.textContent = data.likeCount;
+    });
+</script>
+
+<script src="~/js/commentsScroller.js"></script> *@
+
+
+
+@model MicroSocialPlatform.ViewModels.FeedPageViewModel
+
+@{
+    ViewData["Title"] = "Feed";
+}
+
+<link rel="stylesheet" href="~/css/post.css" />
+
+<div class="ig-feed">
+    <div class="ig-feed-header">
+        <h2>Feed</h2>
+        <a class="ig-btn" asp-controller="Post" asp-action="Create">Create</a>
+    </div>
+
+    @if (TempData["CommentError"] != null)
+    {
+        <div class="alert alert-danger">@TempData["CommentError"]</div>
+    }
+
+    <div id="feed-container">
+        @await Html.PartialAsync("_FeedPostsPartial", Model)
+    </div>
+
+    <div id="feed-loading" class="ig-loading" style="display:none; text-align:center; padding:16px;">Loading...</div>
+    <div id="feed-sentinel" style="height: 1px;"></div>
+</div>
+
+<script>
+    if ("scrollRestoration" in history) history.scrollRestoration = "manual";
+    window.scrollTo(0, 0);
+</script>
+
+
+<script src="~/js/infiniteScroller.js"></script>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        if (!window.MSP || !window.MSP.initInfiniteScroller) return;
+
+        window.MSP.initInfiniteScroller({
+            containerId: "feed-container",
+            sentinelId: "feed-sentinel",
+            loadingId: "feed-loading",
+            endpointUrl: "@Url.Action("FeedPage", "Post")",
+            pageSize: @Model.PageSize
+        });
+    });
+
+    // AJAX toggle like/unlike (no page refresh).
+    document.addEventListener("submit", async (e) => {
+        const form = e.target;
+        if (!(form instanceof HTMLFormElement)) return;
+        if (!form.classList.contains("like-form")) return;
+
+        e.preventDefault();
+
+        const likeKind = form.dataset.likeKind;
+        const likeId = form.dataset.likeId;
+
+        const body = new URLSearchParams(new FormData(form));
+        const res = await fetch(form.action, {
+            method: "POST",
+            headers: { "X-Requested-With": "XMLHttpRequest" },
+            credentials: "same-origin",
+            body
+        });
+
+        if (!res.ok) {
+            // fallback: do a normal submit if something goes wrong
+            form.classList.remove("like-form");
+            form.submit();
+            return;
+        }
+
+        const data = await res.json();
+        
+        const btn = form.querySelector("button.ig-heart-btn");
+        const countEl = form.querySelector(".ig-like-count");
+
+        if (btn) btn.textContent = data.liked ? "♥" : "♡";
+        if (countEl) countEl.textContent = data.likeCount;
+        // Update ALL forms with the same like-kind and like-id (handles duplicates)
+        // const selector = `.like-form[data-like-kind="${likeKind}"][data-like-id="${likeId}"]`;
+        // document.querySelectorAll(selector).forEach(f => {
+        //     const btn = f.querySelector("button.ig-heart-btn");
+        //     const countEl = f.querySelector(".ig-like-count");
+        //     if (btn) btn.textContent = data.liked ? "♥" : "♡";
+        //     if (countEl) countEl.textContent = data.likeCount;
+        // });
+    });
+</script>
+
+<script src="~/js/commentsScroller.js"></script>

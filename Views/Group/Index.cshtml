@@ -1,0 +1,62 @@
+@model MicroSocialPlatform.ViewModels.GroupsPageViewModel
+
+@{
+    ViewData["Title"] = "Groups";
+}
+
+<div class="container mt-4">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <h2 class="fw-light mb-0"><i class="bi bi-people"></i> Groups</h2>
+        @if (User.Identity?.IsAuthenticated == true)
+        {
+            <a class="btn btn-primary" asp-controller="Group" asp-action="Create">Create</a>
+        }
+    </div>
+
+    @if (TempData["GroupError"] != null)
+    {
+        <div class="alert alert-danger">@TempData["GroupError"]</div>
+    }
+
+    <form id="groups-search-form" class="mb-3" method="get" asp-controller="Group" asp-action="Index">
+        <div class="input-group">
+            <input id="groups-search-input"
+                   name="search"
+                   value="@(Model.Search ?? "")"
+                   class="form-control"
+                   placeholder="Search groups..."
+                   autocomplete="off" />
+            <button id="groups-search-btn" class="btn btn-outline-secondary" type="submit">Search</button>
+        </div>
+    </form>
+
+    <div id="groups-results-container" class="list-group">
+        @await Html.PartialAsync("_GroupsPartial", Model)
+    </div>
+
+    <div id="groups-loading" class="text-center py-3" style="display:none;">
+        <span class="spinner-border spinner-border-sm" role="status"></span>
+        Loading...
+    </div>
+
+    <div id="groups-sentinel" style="height:1px;"></div>
+</div>
+
+@section Scripts {
+    <script src="~/js/groupScroller.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            if (window.MSP && window.MSP.initGroupsScroller) {
+                window.MSP.initGroupsScroller({
+                    formId: "groups-search-form",
+                    inputId: "groups-search-input",
+                    containerId: "groups-results-container",
+                    sentinelId: "groups-sentinel",
+                    loadingId: "groups-loading",
+                    endpointUrl: "@Url.Action("GroupsPage", "Group")",
+                    pageSize: @Model.PageSize
+                });
+            }
+        });
+    </script>
+}
